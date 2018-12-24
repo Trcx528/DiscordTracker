@@ -88,12 +88,13 @@ namespace DiscordTracker
 
         private async Task CmdStatsAsync(SocketMessage message)
         {
-            var stats = _db.CallLogs.GroupBy(cl => cl.Username).Select(cl => new { User = cl.First().Username, Time = TimeSpan.FromSeconds(cl.Sum(c => c.TotalTime.Seconds)) }).OrderByDescending(r => r.Time).ToList();
-            var response = "Stats:\n";
+            var stats = _db.CallLogs.GroupBy(cl => cl.Username).Select(cl => new { User = cl.First().Username, Time = TimeSpan.FromSeconds(cl.Sum(c => c.TotalTime.TotalSeconds)) }).OrderByDescending(r => r.Time).ToList();
+            var response = "```Stats:\n";
             foreach (var s in stats)
             {
-                response += $"{s.User.PadLeft(20)}: {s.Time}\n";
+                response += $"{s.User.PadLeft(16)}: {s.Time}\n";
             }
+            response += "```";
             await message.Channel.SendMessageAsync(response);
         }
 

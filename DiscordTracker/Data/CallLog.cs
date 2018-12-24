@@ -15,7 +15,7 @@ namespace DiscordTracker.Data
         public DateTime? LeaveTime { get; set; }
 
         [NotMapped]
-        public TimeSpan TotalTime { get => LeaveTime.HasValue ? LeaveTime.Value - JoinTime : new TimeSpan(0); }
+        public TimeSpan TotalTime { get => LeaveTime.HasValue ? LeaveTime.Value - JoinTime : DateTime.Now - JoinTime; }
 
         public static async Task JoinedAsync(SocketUser user, string channel)
         {
