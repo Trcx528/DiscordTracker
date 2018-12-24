@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using DiscordTracker.Data;
 using System.Linq;
 using System.Threading;
+using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace DiscordTracker
 {
@@ -12,10 +14,14 @@ namespace DiscordTracker
     {
         private static readonly DiscordSocketClient _client = new DiscordSocketClient();
         public static readonly ApplicationDataContext _db = new ApplicationDataContext();
+
+
         private readonly CancellationTokenSource MainThread = new CancellationTokenSource();
 
         static void Main(string[] args)
         {
+            //automatically attempt to apply any pending migrations on startup
+            _db.Database.Migrate();
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
@@ -80,16 +86,54 @@ namespace DiscordTracker
             Environment.Exit(0);
         }
 
+        private async Task CmdStatsAsync(SocketMessage message)
+        {
+            var stats = _db.CallLogs.GroupBy(cl => cl.Username).Select(cl => new { User = cl.First().Username, Time = TimeSpan.FromSeconds(cl.Sum(c => c.TotalTime.Seconds)) }).OrderByDescending(r => r.Time).ToList();
+            var response = "Stats:\n";
+            foreach (var s in stats)
+            {
+                response += $"{s.User.PadLeft(20)}: {s.Time}\n";
+            }
+            await message.Channel.SendMessageAsync(response);
+        }
+
+        private async Task CmdCsvAsync(SocketMessage message)
+        {
+
+            var ms = new MemoryStream();
+            var sw = new StreamWriter(ms);
+            await sw.WriteLineAsync("Id, Channel, Username, JoinTime, LeaveTime, TotalTime");
+            foreach (var cl in await _db.CallLogs.ToListAsync())
+            {
+                await sw.WriteLineAsync($"{cl.Id}, {cl.Channel}, {cl.Username}, {cl.JoinTime}, {cl.LeaveTime}, {cl.TotalTime}");
+            }
+            sw.Flush();
+            ms.Seek(0, SeekOrigin.Begin);
+            await message.Channel.SendFileAsync(ms, "Call Logs.csv");
+        }
+
         private async Task MessageReceievedAsync(SocketMessage message)
         {
             if (message.Author.Id == _client.CurrentUser.Id)
                 return;
 
-            if (message.Content == "!ping")
-                await message.Channel.SendMessageAsync("pong!");
+            if (message.Content.StartsWith("!"))
+            {
+                if (message.Content == "!ping")
+                    await message.Channel.SendMessageAsync("pong!");
 
-            if (message.Content == "!stop" && message.Author.Username == "Trcx")
-                await CmdStopAsync();
+                else if (message.Content == "!stop" && message.Author.Username == "Trcx")
+                    await CmdStopAsync();
+
+                else if (message.Content == "!stats")
+                    await CmdStatsAsync(message);
+
+                else if (message.Content == "!csv")
+                    await CmdCsvAsync(message);
+
+                else
+                    await message.Channel.SendMessageAsync("Unrecognized Command");
+            }
         }
     }
 }

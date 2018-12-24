@@ -20,10 +20,5 @@ namespace DiscordTracker.Data
 
 
         public DbSet<CallLog> CallLogs { get; set; }
-
-        internal object Where(Func<object, object> p)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
