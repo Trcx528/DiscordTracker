@@ -40,10 +40,21 @@ namespace DiscordTracker
                 await CallLog.JoinedAsync(user, newState.VoiceChannel.Name);
                 Console.WriteLine($"{user.Username} Joined {newState.VoiceChannel.Name}");
             }
-            else
+            else if (newState.VoiceChannel == null)
             {
                 await CallLog.LeftAsync(user, prevState.VoiceChannel.Name);
                 Console.WriteLine($"{user.Username} Left {prevState.VoiceChannel.Name}");
+            }
+            else if (newState.VoiceChannel != prevState.VoiceChannel)
+            {
+                //transfered to new room
+                await CallLog.LeftAsync(user, prevState.VoiceChannel.Name);
+                await CallLog.JoinedAsync(user, newState.VoiceChannel.Name);
+                Console.WriteLine($"{user.Username} Left {prevState.VoiceChannel.Name} and joined {newState.VoiceChannel.Name}");
+            }
+            else
+            {
+                Console.WriteLine($"{user.Username} {prevState} {newState}");
             }
         }
         
