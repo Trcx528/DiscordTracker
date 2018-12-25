@@ -31,8 +31,6 @@ namespace DiscordTracker
             _client.Ready += ReadyAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
-            var trcx = _client.GetUser(123595354917568515);
-            Console.WriteLine(trcx.Status);
         }
 
         private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState prevState, SocketVoiceState newState)
@@ -116,14 +114,14 @@ namespace DiscordTracker
 
             var ms = new MemoryStream();
             var sw = new StreamWriter(ms);
-            await sw.WriteLineAsync("Id, Channel, Username, JoinTime, LeaveTime, TotalTime");
-            foreach (var cl in await _db.CallLogs.ToListAsync())
+            await sw.WriteLineAsync("Id, Channel, Username, JoinTime, LeaveTime, TotalTime, InCallBeforeJoined, InCallAfterLeft");
+            foreach (var cl in await _db.CallLogReports.ToListAsync())
             {
-                await sw.WriteLineAsync($"{cl.Id}, {cl.Channel}, {cl.Username}, {cl.JoinTime}, {cl.LeaveTime}, {cl.TotalTime}");
+                await sw.WriteLineAsync($"{cl.Id}, {cl.Channel}, {cl.Username}, {cl.JoinTime}, {cl.LeaveTime}, {cl.TotalTime}, {cl.InCallBeforeJoined}, {cl.InCallAfterLeft}");
             }
             sw.Flush();
             ms.Seek(0, SeekOrigin.Begin);
-            await message.Channel.SendFileAsync(ms, "Call Logs.csv");
+            await message.Channel.SendFileAsync(ms, "CallLogs.csv");
         }
 
         private async Task MessageReceievedAsync(SocketMessage message)
@@ -147,6 +145,8 @@ namespace DiscordTracker
 
                 else
                     await message.Channel.SendMessageAsync("Unrecognized Command");
+
+                Console.WriteLine($"Recieved: {message.Content} From :{message.Author.Username}");
             }
         }
     }

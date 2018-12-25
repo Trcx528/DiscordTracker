@@ -17,16 +17,5 @@ namespace DiscordTracker.Data
         public TimeSpan TotalTime { get => TimeSpan.FromSeconds(this.TotalSeconds); }
         public int InCallBeforeJoined { get; set; }
         public int InCallAfterLeft { get; set; }
-
-        /*
-         * CREATE VIEW vwCallLogReport AS 
-SElECT 
-cl.*
-, Round((julianday(cl.leavetime) - julianday(cl.jointime)) * 24 * 60 *60) AS TotalSeconds
-, (SELECT Count(jl.Id) FROM CallLogs jl WHERE cl.JoinTime >= jl.JoinTime AND cl.JoinTime < jl.LeaveTime AND (Channel == cl.Channel AND Username <> cl.Username)) as InCallBeforeJoined
-, (SELECT Count(ll.Id) FROM CallLogs ll WHERE cl.LeaveTime >= ll.JoinTime AND cl.JoinTime < ll.LeaveTime AND (Channel == cl.Channel AND Username <> cl.Username)) as InCallAfterLeft
- FROM CallLogs cl
- GROUP BY cl.Id, cl.Channel, cl.Username, cl.JoinTime, cl.LeaveTime
-         */
     }
 }
