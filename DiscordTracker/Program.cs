@@ -31,6 +31,8 @@ namespace DiscordTracker
             _client.Ready += ReadyAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
+            var trcx = _client.GetUser(123595354917568515);
+            Console.WriteLine(trcx.Status);
         }
 
         private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState prevState, SocketVoiceState newState)

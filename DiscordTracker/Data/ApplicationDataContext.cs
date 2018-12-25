@@ -20,5 +20,6 @@ namespace DiscordTracker.Data
 
 
         public DbSet<CallLog> CallLogs { get; set; }
+        public DbSet<CallLogReport> CallLogReports { get; set; }
     }
 }
