@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Collections.Generic;
 
 namespace DiscordTracker
 {
@@ -14,6 +15,8 @@ namespace DiscordTracker
     {
         public static readonly DiscordSocketClient _client = new DiscordSocketClient();
         public static readonly ApplicationDataContext _db = new ApplicationDataContext();
+        public static IEnumerable<DiscordVoiceChannel> _discordVoiceChannels;
+        public static IEnumerable<DiscordUser> _discordUsers;
 
 
         private readonly CancellationTokenSource MainThread = new CancellationTokenSource();
@@ -22,7 +25,8 @@ namespace DiscordTracker
         {
             //automatically attempt to apply any pending migrations on startup
             _db.Database.Migrate();
-
+            _discordUsers = _db.DiscordUser.ToArray();
+            _discordVoiceChannels = _db.DiscordVoiceChannel.ToArray();
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
