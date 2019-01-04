@@ -33,7 +33,7 @@ namespace DiscordTracker
         public Program()
         {
             _client.Ready += ReadyAsync;
-            _client.UserUpdated += UserUpdatedAsync;
+            _client.GuildMemberUpdated += UserUpdatedAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
         }

@@ -7,6 +7,7 @@ namespace DiscordTracker.Data
     {
         public ulong Id { get; set; }
         public string Username { get; set; }
+        public string IRLName { get; set; }
         public bool IsAdmin { get; set; }
 
         public virtual List<Quote> QuotesSaved { get; set; }

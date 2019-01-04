@@ -22,7 +22,7 @@ namespace DiscordTracker.Data
         {
             if (Program._discordUsers.Where(u => u.User.Id == user.Id).FirstOrDefault() == null)
             {
-                var du = new DiscordUser() { Id = user.Id, IsAdmin = false, Username = user.Username };
+                var du = new DiscordUser() { Id = user.Id, IsAdmin = false, Username = user.Username, IRLName = user.Username };
                 Program._db.Add(du);
                 await Program._db.SaveChangesAsync();
                 Program._discordUsers = await Program._db.DiscordUser.ToListAsync();
