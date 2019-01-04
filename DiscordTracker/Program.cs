@@ -33,14 +33,30 @@ namespace DiscordTracker
         public Program()
         {
             _client.Ready += ReadyAsync;
-            _client.GuildMemberUpdated += UserUpdatedAsync;
+            _client.GuildMemberUpdated += GuildUserUpdatedAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
         }
 
-        private async Task UserUpdatedAsync(SocketUser prevUser, SocketUser newUser)
+        private async Task GuildUserUpdatedAsync(SocketUser prevUser, SocketUser newUser)
         {
-            await Log.LogAsync(prevUser, $"User Updated {prevUser.Status} {newUser.Status} {prevUser.Game} {newUser.Game}");
+            if (prevUser.Status != newUser.Status)
+            {
+                await Log.LogAsync(prevUser, $"{prevUser.Username} Status Updated from {prevUser.Status} to {newUser.Status}");
+            } else if (prevUser.Game?.Name != newUser.Game?.Name)
+            {
+                if (!prevUser.Game.HasValue) {
+                       //game started
+                } else if (!newUser.Game.HasValue)
+                {
+                    //game ended
+                } else
+                {
+                    //something else
+                }
+            }
+            
+
         }
 
         private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState prevState, SocketVoiceState newState)
