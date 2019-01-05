@@ -41,5 +41,8 @@ namespace DiscordTracker.Data
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<Log> Logs { get; set; }
         public DbSet<RelatedVoiceEvent>  RelatedVoiceEvents { get; set; }
+
+        public DbQuery<CallStatsDetail> CallStatsDetails { get; set; }
+        public DbQuery<CallStats> CallStats { get; set; }
     }
 }

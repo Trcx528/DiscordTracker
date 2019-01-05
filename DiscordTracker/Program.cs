@@ -8,6 +8,7 @@ using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Collections.Generic;
+using System.Text;
 
 namespace DiscordTracker
 {
@@ -17,6 +18,12 @@ namespace DiscordTracker
         public static readonly ApplicationDataContext _db = new ApplicationDataContext();
         public static IEnumerable<DiscordVoiceChannel> _discordVoiceChannels;
         public static IEnumerable<DiscordUser> _discordUsers;
+
+#if DEBUG
+        public const string triggerCharacter = "|";
+#else
+        public const string triggerCharacter = "!";
+#endif
 
 
         private readonly CancellationTokenSource MainThread = new CancellationTokenSource();
@@ -142,16 +149,26 @@ namespace DiscordTracker
 
         private async Task CmdStatsAsync(SocketMessage message)
         {
+            var stats = await _db.CallStats.OrderByDescending(s => s.TimeInCall).ToListAsync();
+            var response = new StringBuilder();
+            var length = stats.Select(s => s.User).OrderByDescending(s => s.Length).First().Length;
+            response.Append($"```{"".PadLeft(length)}   Time  |  Muted | Deafened\n");
+            foreach (var s in stats)
+            {
+                response.Append($"{s.User.PadLeft(length)}: {String.Format("{0:0.##}", Math.Round(s.TimeInCall, 2)).PadLeft(6)} | {String.Format("{0:0.##}", Math.Round(s.TimeMuted, 2)).PadLeft(6)} | {String.Format("{0:0.##}", Math.Round(s.TimeDeafened, 2)).PadLeft(8)}\n");
+            }
+            response.Append("```");
+            await message.Channel.SendMessageAsync(response.ToString());
         }
 
         private async Task CmdCsvAsync(SocketMessage message)
         {
             var ms = new MemoryStream();
             var sw = new StreamWriter(ms);
-            await sw.WriteLineAsync("Id, Channel, Username, JoinTime, LeaveTime, TotalTime, InCallBeforeJoined, InCallAfterLeft");
-            foreach (var cl in await _db.VoiceEventLog.ToListAsync())
+            await sw.WriteLineAsync("Channel, Username, Start, End, Duration, Event Type");
+            foreach (var cl in await _db.CallStatsDetails.OrderByDescending(f => f.Start).ToListAsync())
             {
-                //await sw.WriteLineAsync($"{cl.Id}, {cl.Channel}, {cl.Username}, {cl.JoinTime}, {cl.LeaveTime}, {cl.TotalTime}, {cl.InCallBeforeJoined}, {cl.InCallAfterLeft}");
+                await sw.WriteLineAsync($"{cl.Channel}, {cl.User}, {cl.Start}, {cl.End}, {cl.End - cl.Start}, {cl.EventType}");
             }
             sw.Flush();
             ms.Seek(0, SeekOrigin.Begin);
@@ -163,18 +180,18 @@ namespace DiscordTracker
             if (message.Author.Id == _client.CurrentUser.Id)
                 return;
 
-            if (message.Content.StartsWith("!"))
+            if (message.Content.StartsWith(triggerCharacter))
             {
-                if (message.Content == "!ping")
+                if (message.Content == triggerCharacter + "ping")
                     await message.Channel.SendMessageAsync("pong!");
 
-                else if (message.Content == "!stop" && message.Author.GetDBUser().IsAdmin)
+                else if (message.Content == triggerCharacter + "stop" && message.Author.GetDBUser().IsAdmin)
                     await CmdStopAsync();
 
-                else if (message.Content == "!stats")
+                else if (message.Content == triggerCharacter + "stats")
                     await CmdStatsAsync(message);
 
-                else if (message.Content == "!csv")
+                else if (message.Content == triggerCharacter + "csv")
                     await CmdCsvAsync(message);
 
                 else
