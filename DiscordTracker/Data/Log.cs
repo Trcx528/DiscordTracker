@@ -17,12 +17,14 @@ namespace DiscordTracker.Data
 
         public static async Task LogAsync(SocketUser user, SocketVoiceChannel channel, string eventName)
         {
+            var db = new ApplicationDataContext();
             await DiscordUser.CreateOrGetAsync(user);
             var log = new Log() { UserId = user.Id, ChannelId = channel.Id, DateTime = DateTime.Now };
             log.Message = $"{user.Username} {eventName} in {channel.Name}";
             Console.WriteLine($"{DateTime.Now} {log.Message}");
-            Program._db.Add(log);
-            await Program._db.SaveChangesAsync();
+            db.Add(log);
+            await db.SaveChangesAsync();
+            db.Dispose();
         }
 
         public static async Task LogAsync(SocketUser user, string message)
@@ -30,8 +32,10 @@ namespace DiscordTracker.Data
             await DiscordUser.CreateOrGetAsync(user);
             var log = new Log() { UserId = user.Id, Message = message };
             Console.WriteLine($"{DateTime.Now} {log.Message}");
-            Program._db.Add(log);
-            await Program._db.SaveChangesAsync();
+            var db = new ApplicationDataContext();
+            db.Add(log);
+            await db.SaveChangesAsync();
+            db.Dispose();
         }
 
         public static async Task LogAsync(string message)
@@ -39,8 +43,10 @@ namespace DiscordTracker.Data
 
             var log = new Log() { DateTime = DateTime.Now, Message = message };
             Console.WriteLine($"{DateTime.Now} {log.Message}");
-            Program._db.Add(log);
-            await Program._db.SaveChangesAsync();
+            var db = new ApplicationDataContext();
+            db.Add(log);
+            await db.SaveChangesAsync();
+            db.Dispose();
         }
     }
 }

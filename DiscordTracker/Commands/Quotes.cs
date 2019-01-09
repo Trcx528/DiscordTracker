@@ -11,6 +11,8 @@ namespace DiscordTracker.Commands
 {
     public static class Quotes
     {
+        private static ApplicationDataContext _db = new ApplicationDataContext();
+
         public static async Task Execute(SocketMessage message)
         {
             // "|quote add this is a test <@!227328871270318080>"
@@ -19,7 +21,7 @@ namespace DiscordTracker.Commands
             if (sections.Count() == 1)
             {
                 var rand = new Random();
-                var q = Program._db.Quotes.Include(a => a.Author).Skip(rand.Next(0, Program._db.Quotes.Count())).First();
+                var q = _db.Quotes.Include(a => a.Author).Skip(rand.Next(0, _db.Quotes.Count())).First();
                 await message.Channel.SendMessageAsync(q.DiscordDisplayMessage);
             }
             else if (sections[1].ToLower() == "add")
@@ -32,7 +34,7 @@ namespace DiscordTracker.Commands
                 await Search(message, sections);
 
             else if (int.TryParse(sections[1], out id))
-                await message.Channel.SendMessageAsync(Program._db.Quotes.Find(id).DiscordDisplayMessage);
+                await message.Channel.SendMessageAsync(_db.Quotes.Find(id).DiscordDisplayMessage);
         }
 
         private static async Task Add(SocketMessage message, string[] parts)
@@ -47,8 +49,8 @@ namespace DiscordTracker.Commands
 
             var quoteText = parts.Skip(2).Where(s => !s.Contains(message.MentionedUsers.First().Mention)).Aggregate("", (c, n) => c + " " + n).Trim();
             var quote = new Quote() { AddedById = message.Author.Id, AuthorId = message.MentionedUsers.First().Id, Created = DateTime.Now, QuoteText = quoteText };
-            Program._db.Add(quote);
-            await Program._db.SaveChangesAsync();
+            _db.Add(quote);
+            await _db.SaveChangesAsync();
             await message.Channel.SendMessageAsync($"Quote {quote.Id} created!");
         }
 
@@ -63,8 +65,8 @@ namespace DiscordTracker.Commands
             int id;
             if (parts.Count() == 3 && int.TryParse(parts[2], out id))
             {
-                Program._db.Remove(Program._db.Quotes.Find(id));
-                await Program._db.SaveChangesAsync();
+                _db.Remove(_db.Quotes.Find(id));
+                await _db.SaveChangesAsync();
                 await message.Channel.SendMessageAsync("Quote Deleted");
             }
             else
@@ -76,7 +78,7 @@ namespace DiscordTracker.Commands
 
         private static async Task Search(SocketMessage message, string[] parts)
         {
-            var results = Program._db.Quotes.Where(i => true);
+            var results = _db.Quotes.Where(i => true);
             foreach (var part in parts.Skip(2))
             {
                 results = results.Where(q => q.QuoteText.Contains(part));

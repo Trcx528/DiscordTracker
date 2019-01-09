@@ -6,6 +6,7 @@ namespace DiscordTracker.Data
 {
     public class Setting
     {
+        private static ApplicationDataContext db = new ApplicationDataContext();
         public string Id { get; set; }
         public string Value { get; set; }
 
@@ -13,6 +14,6 @@ namespace DiscordTracker.Data
         public int GetIntValue { get => Convert.ToInt32(Value); }
         public bool GetBoolValue { get => Convert.ToBoolean(Value); }
 
-        public static string DiscordToken { get => Program._db.Settings.Find("DISCORD_TOKEN").Value; set { Program._db.Settings.Find("DISCORD_TOKEN").Value = value; Program._db.SaveChanges(); } }
+        public static string DiscordToken { get => db.Settings.Find("DISCORD_TOKEN").Value; set { db.Settings.Find("DISCORD_TOKEN").Value = value; db.SaveChanges(); } }
     }
 }

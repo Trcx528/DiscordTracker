@@ -15,10 +15,12 @@ namespace DiscordTracker.Data
             var vc = Program._discordVoiceChannels.Where(v => v.Id == chan.Id).FirstOrDefault();
             if (vc == null)
             {
+                var db = new ApplicationDataContext();
                 vc = new DiscordVoiceChannel() { Id = chan.Id, Name = chan.ToString() };
-                Program._db.Add(vc);
-                await Program._db.SaveChangesAsync();
-                Program._discordVoiceChannels = await Program._db.DiscordVoiceChannel.ToListAsync();
+                db.Add(vc);
+                await db.SaveChangesAsync();
+                Program._discordVoiceChannels = await db.DiscordVoiceChannel.ToListAsync();
+                db.Dispose();
             }
 
             return vc;

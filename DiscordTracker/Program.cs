@@ -16,7 +16,7 @@ namespace DiscordTracker
     class Program
     {
         public static readonly DiscordSocketClient _client = new DiscordSocketClient();
-        public static ApplicationDataContext _db = new ApplicationDataContext();
+        //public static ApplicationDataContext _db = new ApplicationDataContext();
         public static IEnumerable<DiscordVoiceChannel> _discordVoiceChannels;
         public static IEnumerable<DiscordUser> _discordUsers;
 
@@ -32,9 +32,11 @@ namespace DiscordTracker
         static void Main(string[] args)
         {
             //automatically attempt to apply any pending migrations on startup
-            _db.Database.Migrate();
-            _discordUsers = _db.DiscordUser.ToArray();
-            _discordVoiceChannels = _db.DiscordVoiceChannel.ToArray();
+            var db = new ApplicationDataContext();
+            db.Database.Migrate();
+            _discordUsers = db.DiscordUser.ToArray();
+            _discordVoiceChannels = db.DiscordVoiceChannel.ToArray();
+            db.Dispose();
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
@@ -49,7 +51,8 @@ namespace DiscordTracker
 
         private async void BotShuttingDown(object sender, EventArgs e)
         {
-            foreach(var chan in _db.DiscordVoiceChannel)
+            var db = new ApplicationDataContext();
+            foreach (var chan in db.DiscordVoiceChannel)
             {
                 var c = _client.GetChannel(chan.Id);
                 foreach (var u in c.Users)
@@ -57,7 +60,7 @@ namespace DiscordTracker
                     await VoiceEventLog.Log(u, c, "Left");
                 }
             }
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _client.Dispose();
             MainThread.Cancel();
             Environment.Exit(0);
@@ -65,9 +68,11 @@ namespace DiscordTracker
 
         private async Task GuildUserUpdatedAsync(SocketUser prevUser, SocketUser newUser)
         {
+            var db = new ApplicationDataContext();
             await Log.LogAsync(newUser, $"{newUser.Username} Status change {newUser.Status} {newUser.Game}");
-            _db.Add(new DiscordUserEvent() { EventTime = DateTime.Now, Game = newUser.Game?.Name, Status = newUser.Status.ToString(), UserId = newUser.Id });
-            await _db.SaveChangesAsync(); 
+            db.Add(new DiscordUserEvent() { EventTime = DateTime.Now, Game = newUser.Game?.Name, Status = newUser.Status.ToString(), UserId = newUser.Id });
+            await db.SaveChangesAsync();
+            db.Dispose();
 
         }
 
@@ -122,18 +127,20 @@ namespace DiscordTracker
 
         public async Task MainAsync()
         {
-            var token = await _db.Settings.FirstOrDefaultAsync(s => s.Id == "DISCORD_TOKEN");
+            var db = new ApplicationDataContext();
+            var token = await db.Settings.FirstOrDefaultAsync(s => s.Id == "DISCORD_TOKEN");
             if (token == null || token.Value == "")
             {
                 Console.WriteLine("Please enter the discord token:");
                 if (token == null)
                 {
                     token = new Setting() { Id = "DISCORD_TOKEN" };
-                    _db.Add(token);
+                    db.Add(token);
                 }
                 token.Value = Console.ReadLine();
-                await _db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
+            db.Dispose();
             await _client.LoginAsync(Discord.TokenType.Bot, token.Value);
             await _client.StartAsync();
             await Task.Delay(-1, MainThread.Token);
@@ -143,7 +150,8 @@ namespace DiscordTracker
         {
             await Log.LogAsync($"{_client.CurrentUser} connected!");
 
-            foreach (var chan in _db.DiscordVoiceChannel)
+            var db = new ApplicationDataContext();
+            foreach (var chan in db.DiscordVoiceChannel)
             {
                 var c = _client.GetChannel(chan.Id);
                 foreach (var u in c.Users)
@@ -152,12 +160,13 @@ namespace DiscordTracker
                     await VoiceEventLog.Log(u, c, "Joined");
                 }
             }
-            await _db.SaveChangesAsync();
+            db.Dispose();
         }
         
         private async Task CmdStatsAsync(SocketMessage message)
         {
-            var stats = await _db.CallStats.OrderByDescending(s => s.TimeInCall).ToListAsync();
+            var db = new ApplicationDataContext();
+            var stats = await db.CallStats.OrderByDescending(s => s.TimeInCall).ToListAsync();
             var response = new StringBuilder();
             var length = stats.Select(s => s.User).OrderByDescending(s => s.Length).First().Length;
             response.Append($"```{"".PadLeft(length)}   Time  |  Muted | Deafened\n");
@@ -167,6 +176,7 @@ namespace DiscordTracker
             }
             response.Append("```");
             await message.Channel.SendMessageAsync(response.ToString());
+            db.Dispose();
         }
 
         private async Task CmdCsvAsync(SocketMessage message)
@@ -174,13 +184,15 @@ namespace DiscordTracker
             var ms = new MemoryStream();
             var sw = new StreamWriter(ms);
             await sw.WriteLineAsync("Channel, Username, Start, End, Duration, Event Type");
-            foreach (var cl in await _db.CallStatsDetails.ToListAsync())
+            var db = new ApplicationDataContext();
+            foreach (var cl in await db.CallStatsDetails.ToListAsync())
             {
                 await sw.WriteLineAsync($"{cl.Channel}, {cl.User}, {cl.Start}, {cl.End}, {cl.End - cl.Start}, {cl.EventType}");
             }
             sw.Flush();
             ms.Seek(0, SeekOrigin.Begin);
             await message.Channel.SendFileAsync(ms, "CallLogs.csv");
+            db.Dispose();
         }
 
         private async Task MessageReceievedAsync(SocketMessage message)
@@ -212,9 +224,14 @@ namespace DiscordTracker
 
                     case "reload":
                         if (message.Author.IsAdmin())
-                            Program._db = new ApplicationDataContext();
-                        else
+                        {
+                            var _db = new ApplicationDataContext();
+                            _discordUsers = await _db.DiscordUser.ToListAsync();
+                            _discordVoiceChannels = await _db.DiscordVoiceChannel.ToListAsync();
+                        } 
+                        else { 
                             await message.Channel.SendMessageAsync("You do not have permission to do that");
+                        }
                         break;
 
                     default:

@@ -24,7 +24,10 @@ namespace DiscordTracker.Data
             await DiscordVoiceChannel.CreateOrGetAsync(chan);
 
             var vel = new VoiceEventLog() { Date = DateTime.Now, ChannelId = chan.Id, UserId = user.Id, EventType = eventName };
-            Program._db.Add(vel);
+            var db = new ApplicationDataContext();
+            db.Add(vel);
+            await db.SaveChangesAsync();
+            db.Dispose();
         }
     }
 }
