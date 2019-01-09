@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace DiscordTracker.Data
@@ -13,5 +14,8 @@ namespace DiscordTracker.Data
         public DateTime Created { get; set; }
         public ulong AuthorId { get; set; }
         public DiscordUser Author { get; set; }
+
+        [NotMapped]
+        public string DiscordDisplayMessage => $"{QuoteText} - {Program._client.GetUser(AuthorId).Mention} (Added {Created.ToShortDateString()} {Created.ToShortTimeString()})";
     }
 }

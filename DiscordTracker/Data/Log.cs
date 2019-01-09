@@ -17,6 +17,7 @@ namespace DiscordTracker.Data
 
         public static async Task LogAsync(SocketUser user, SocketVoiceChannel channel, string eventName)
         {
+            await DiscordUser.CreateOrGetAsync(user);
             var log = new Log() { UserId = user.Id, ChannelId = channel.Id, DateTime = DateTime.Now };
             log.Message = $"{user.Username} {eventName} in {channel.Name}";
             Console.WriteLine($"{DateTime.Now} {log.Message}");
@@ -26,6 +27,7 @@ namespace DiscordTracker.Data
 
         public static async Task LogAsync(SocketUser user, string message)
         {
+            await DiscordUser.CreateOrGetAsync(user);
             var log = new Log() { UserId = user.Id, Message = message };
             Console.WriteLine($"{DateTime.Now} {log.Message}");
             Program._db.Add(log);

@@ -9,13 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using DiscordTracker.Commands;
 
 namespace DiscordTracker
 {
     class Program
     {
         public static readonly DiscordSocketClient _client = new DiscordSocketClient();
-        public static readonly ApplicationDataContext _db = new ApplicationDataContext();
+        public static ApplicationDataContext _db = new ApplicationDataContext();
         public static IEnumerable<DiscordVoiceChannel> _discordVoiceChannels;
         public static IEnumerable<DiscordUser> _discordUsers;
 
@@ -43,26 +44,30 @@ namespace DiscordTracker
             _client.GuildMemberUpdated += GuildUserUpdatedAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
+            AppDomain.CurrentDomain.ProcessExit += BotShuttingDown;
+        }
+
+        private async void BotShuttingDown(object sender, EventArgs e)
+        {
+            foreach(var chan in _db.DiscordVoiceChannel)
+            {
+                var c = _client.GetChannel(chan.Id);
+                foreach (var u in c.Users)
+                {
+                    await VoiceEventLog.Log(u, c, "Left");
+                }
+            }
+            await _db.SaveChangesAsync();
+            _client.Dispose();
+            MainThread.Cancel();
+            Environment.Exit(0);
         }
 
         private async Task GuildUserUpdatedAsync(SocketUser prevUser, SocketUser newUser)
         {
-            if (prevUser.Status != newUser.Status)
-            {
-                await Log.LogAsync(prevUser, $"{prevUser.Username} Status Updated from {prevUser.Status} to {newUser.Status}");
-            } else if (prevUser.Game?.Name != newUser.Game?.Name)
-            {
-                if (!prevUser.Game.HasValue) {
-                       //game started
-                } else if (!newUser.Game.HasValue)
-                {
-                    //game ended
-                } else
-                {
-                    //something else
-                }
-            }
-            
+            await Log.LogAsync(newUser, $"{newUser.Username} Status change {newUser.Status} {newUser.Game}");
+            _db.Add(new DiscordUserEvent() { EventTime = DateTime.Now, Game = newUser.Game?.Name, Status = newUser.Status.ToString(), UserId = newUser.Id });
+            await _db.SaveChangesAsync(); 
 
         }
 
@@ -137,16 +142,19 @@ namespace DiscordTracker
         private async Task ReadyAsync()
         {
             await Log.LogAsync($"{_client.CurrentUser} connected!");
-        }
 
-        private async Task CmdStopAsync()
-        {
-            //shutting down
-            _client.Dispose();
-            MainThread.Cancel();
-            Environment.Exit(0);
+            foreach (var chan in _db.DiscordVoiceChannel)
+            {
+                var c = _client.GetChannel(chan.Id);
+                foreach (var u in c.Users)
+                {
+                    //TODO make this inteligent and check if they already have an open session
+                    await VoiceEventLog.Log(u, c, "Joined");
+                }
+            }
+            await _db.SaveChangesAsync();
         }
-
+        
         private async Task CmdStatsAsync(SocketMessage message)
         {
             var stats = await _db.CallStats.OrderByDescending(s => s.TimeInCall).ToListAsync();
@@ -166,7 +174,7 @@ namespace DiscordTracker
             var ms = new MemoryStream();
             var sw = new StreamWriter(ms);
             await sw.WriteLineAsync("Channel, Username, Start, End, Duration, Event Type");
-            foreach (var cl in await _db.CallStatsDetails.OrderByDescending(f => f.Start).ToListAsync())
+            foreach (var cl in await _db.CallStatsDetails.ToListAsync())
             {
                 await sw.WriteLineAsync($"{cl.Channel}, {cl.User}, {cl.Start}, {cl.End}, {cl.End - cl.Start}, {cl.EventType}");
             }
@@ -182,21 +190,37 @@ namespace DiscordTracker
 
             if (message.Content.StartsWith(triggerCharacter))
             {
-                if (message.Content == triggerCharacter + "ping")
-                    await message.Channel.SendMessageAsync("pong!");
+                var cmd = message.Content.Substring(1, message.Content.Length - 1).Split(' ').First();
 
-                else if (message.Content == triggerCharacter + "stop" && message.Author.GetDBUser().IsAdmin)
-                    await CmdStopAsync();
+                switch (cmd)
+                {
+                    case "ping":
+                        await message.Channel.SendMessageAsync("pong!");
+                        break;
 
-                else if (message.Content == triggerCharacter + "stats")
-                    await CmdStatsAsync(message);
+                    case "csv":
+                        await CmdCsvAsync(message);
+                        break;
 
-                else if (message.Content == triggerCharacter + "csv")
-                    await CmdCsvAsync(message);
+                    case "stats":
+                        await CmdStatsAsync(message);
+                        break;
 
-                else
-                    await message.Channel.SendMessageAsync("Unrecognized Command");
+                    case "quote":
+                        await Quotes.Execute(message);
+                        break;
 
+                    case "reload":
+                        if (message.Author.IsAdmin())
+                            Program._db = new ApplicationDataContext();
+                        else
+                            await message.Channel.SendMessageAsync("You do not have permission to do that");
+                        break;
+
+                    default:
+                        await message.Channel.SendMessageAsync("Unrecognized Commaned");
+                        break;
+                }
                 await Log.LogAsync(message.Author, $"Recieved: {message.Content}");
             }
         }

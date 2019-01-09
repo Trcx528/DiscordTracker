@@ -15,11 +15,11 @@ namespace DiscordTracker.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-#if DEBUG
-            optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot-Dev;User Id=bob;Password=bob");
-#else
+//#if DEBUG
+//            optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot-Dev;User Id=bob;Password=bob");
+//#else
             optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot;User Id=bob;Password=bob");
-#endif
+//#endif
         }
 
         internal DiscordUser Find(ulong id)
@@ -41,6 +41,7 @@ namespace DiscordTracker.Data
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<Log> Logs { get; set; }
         public DbSet<RelatedVoiceEvent>  RelatedVoiceEvents { get; set; }
+        public DbSet<DiscordUserEvent> DiscordUserEvents { get; set; }
 
         public DbQuery<CallStatsDetail> CallStatsDetails { get; set; }
         public DbQuery<CallStats> CallStats { get; set; }

@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DiscordTracker.Data
 {
@@ -17,6 +20,18 @@ namespace DiscordTracker.Data
         [NotMapped]
         public Discord.WebSocket.SocketUser User { get => Program._client.GetUser(Id); }
 
-        
+        public static async Task<DiscordUser> CreateOrGetAsync (Discord.WebSocket.SocketUser user)
+        {
+            var du = Program._discordUsers.Where(u => u.User.Id == user.Id).FirstOrDefault();
+            if (du == null)
+            {
+                du = new DiscordUser() { Id = user.Id, IsAdmin = false, Username = user.Username, IRLName = user.Username };
+                Program._db.Add(du);
+                Program._discordUsers = await Program._db.DiscordUser.ToListAsync();
+            }
+            return du;
     }
+
+
+}
 }
