@@ -35,6 +35,8 @@ namespace DiscordTracker.Commands
 
             else if (int.TryParse(sections[1], out id))
                 await message.Channel.SendMessageAsync(_db.Quotes.Find(id).DiscordDisplayMessage);
+            else
+                await message.Channel.SendMessageAsync("Unrecognized Command");
         }
 
         private static async Task Add(SocketMessage message, string[] parts)

@@ -20,6 +20,7 @@ namespace DiscordTracker.Data
                 db.Add(vc);
                 await db.SaveChangesAsync();
                 Program._discordVoiceChannels = await db.DiscordVoiceChannel.ToListAsync();
+                await db.SaveChangesAsync();
                 db.Dispose();
             }
 

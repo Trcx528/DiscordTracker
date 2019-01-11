@@ -51,6 +51,7 @@ namespace DiscordTracker
 
         private async void BotShuttingDown(object sender, EventArgs e)
         {
+            Console.WriteLine("Shutting Down");
             var db = new ApplicationDataContext();
             foreach (var chan in db.DiscordVoiceChannel)
             {
@@ -200,45 +201,53 @@ namespace DiscordTracker
             if (message.Author.Id == _client.CurrentUser.Id)
                 return;
 
-            if (message.Content.StartsWith(triggerCharacter))
+            try
             {
-                var cmd = message.Content.Substring(1, message.Content.Length - 1).Split(' ').First();
-
-                switch (cmd)
+                if (message.Content.StartsWith(triggerCharacter))
                 {
-                    case "ping":
-                        await message.Channel.SendMessageAsync("pong!");
-                        break;
+                    var cmd = message.Content.Substring(1, message.Content.Length - 1).Split(' ').First();
 
-                    case "csv":
-                        await CmdCsvAsync(message);
-                        break;
+                    switch (cmd)
+                    {
+                        case "ping":
+                            await message.Channel.SendMessageAsync("pong!");
+                            break;
 
-                    case "stats":
-                        await CmdStatsAsync(message);
-                        break;
+                        case "csv":
+                            await CmdCsvAsync(message);
+                            break;
 
-                    case "quote":
-                        await Quotes.Execute(message);
-                        break;
+                        case "stats":
+                            await CmdStatsAsync(message);
+                            break;
 
-                    case "reload":
-                        if (message.Author.IsAdmin())
-                        {
-                            var _db = new ApplicationDataContext();
-                            _discordUsers = await _db.DiscordUser.ToListAsync();
-                            _discordVoiceChannels = await _db.DiscordVoiceChannel.ToListAsync();
-                        } 
-                        else { 
-                            await message.Channel.SendMessageAsync("You do not have permission to do that");
-                        }
-                        break;
+                        case "quote":
+                            await Quotes.Execute(message);
+                            break;
 
-                    default:
-                        await message.Channel.SendMessageAsync("Unrecognized Commaned");
-                        break;
+                        case "reload":
+                            if (message.Author.IsAdmin())
+                            {
+                                var _db = new ApplicationDataContext();
+                                _discordUsers = await _db.DiscordUser.ToListAsync();
+                                _discordVoiceChannels = await _db.DiscordVoiceChannel.ToListAsync();
+                            }
+                            else
+                            {
+                                await message.Channel.SendMessageAsync("You do not have permission to do that");
+                            }
+                            break;
+
+                        default:
+                            await message.Channel.SendMessageAsync("Unrecognized Commaned");
+                            break;
+                    }
+                    await Log.LogAsync(message.Author, $"Recieved: {message.Content}");
                 }
-                await Log.LogAsync(message.Author, $"Recieved: {message.Content}");
+            } catch (Exception ex)
+            {
+                await message.Channel.SendMessageAsync("An Error Occured");
+                await Log.LogAsync(ex.Message + "\n" + ex.StackTrace);
             }
         }
     }

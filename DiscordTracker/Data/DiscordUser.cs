@@ -29,6 +29,7 @@ namespace DiscordTracker.Data
                 du = new DiscordUser() { Id = user.Id, IsAdmin = false, Username = user.Username, IRLName = user.Username };
                 db.Add(du);
                 Program._discordUsers = await db.DiscordUser.ToListAsync();
+                await db.SaveChangesAsync();
                 db.Dispose();
             }
             return du;

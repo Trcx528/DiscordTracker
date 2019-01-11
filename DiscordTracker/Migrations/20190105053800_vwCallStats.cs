@@ -10,9 +10,9 @@ namespace DiscordTracker.Migrations
 CREATE VIEW CallStats AS
 SELECT
 	[User]
-	,SUM(CASE WHEN EventType = 'Joined' THEN Duration ELSE 0 END) / 60.0 as TimeInCall
-	,SUM(CASE WHEN EventType IN ('Admin Muted', 'Self Muted') THEN Duration ELSE 0 END) / 60.0 as TimeMuted
-	,SUM(CASE WHEN EventType IN ('Admin Deafened', 'Self Deafened') THEN Duration ELSE 0 END) / 60.0 as TimeDeafened
+    ,coalesce(SUM(CASE WHEN EventType = 'Joined' THEN Duration ELSE 0 END) / 60.0, 0) as TimeInCall
+	,coalesce(SUM(CASE WHEN EventType IN ('Admin Muted', 'Self Muted') THEN Duration ELSE 0 END) / 60.0, 0) as TimeMuted
+	,coalesce(SUM(CASE WHEN EventType IN ('Admin Deafened', 'Self Deafened') THEN Duration ELSE 0 END) / 60.0, 0) as TimeDeafened
   FROM [dbo].[CallStatsDetails] csd
   WHERE csd.Start >= DATEADD(m, -1, GETDATE())
   GROUP BY [User]

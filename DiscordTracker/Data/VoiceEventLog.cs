@@ -20,10 +20,10 @@ namespace DiscordTracker.Data
 
         public async static Task Log(SocketUser user, SocketChannel chan, string eventName)
         {
-            await DiscordUser.CreateOrGetAsync(user);
-            await DiscordVoiceChannel.CreateOrGetAsync(chan);
+            var u = await DiscordUser.CreateOrGetAsync(user);
+            var c = await DiscordVoiceChannel.CreateOrGetAsync(chan);
 
-            var vel = new VoiceEventLog() { Date = DateTime.Now, ChannelId = chan.Id, UserId = user.Id, EventType = eventName };
+            var vel = new VoiceEventLog() { Date = DateTime.Now, ChannelId = c.Id, UserId = u.Id, EventType = eventName };
             var db = new ApplicationDataContext();
             db.Add(vel);
             await db.SaveChangesAsync();
