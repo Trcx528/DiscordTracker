@@ -15,11 +15,12 @@ namespace DiscordTracker.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-//#if DEBUG
-//            optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot-Dev;User Id=bob;Password=bob");
-//#else
+#if DEBUG
+            //optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot-Dev;User Id=bob;Password=bob");
+            optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=BobBot-Dev;User Id=bob;Password=bob");
+#else
             optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot;User Id=bob;Password=bob");
-//#endif
+#endif
         }
 
         internal DiscordUser Find(ulong id)
