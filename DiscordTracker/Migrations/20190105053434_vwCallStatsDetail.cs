@@ -17,7 +17,7 @@ SELECT
 	, vel.EventType
 FROM VoiceEventLog vel
 JOIN RelatedVoiceEvents rve
-	ON vel.EventType = rve.InitalEvent
+	ON vel.EventType = rve.InitalEvent and IsPrimary = 1
 JOIN DiscordUser du
 	ON du.Id = vel.UserId
 JOIN DiscordVoiceChannel dvc
