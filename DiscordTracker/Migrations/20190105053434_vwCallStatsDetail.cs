@@ -22,12 +22,16 @@ JOIN DiscordUser du
 	ON du.Id = vel.UserId
 JOIN DiscordVoiceChannel dvc
 	ON dvc.Id = vel.ChannelId
-LEFT JOIN VoiceEventLog vet
-	ON vel.ChannelId = vet.ChannelId 
-	AND vel.UserId = vet.UserId 
-	AND rve.SecondaryEvent = vet.EventType 
-	AND vet.Date > vel.Date 
-	AND DATEDIFF(HOUR, vel.date, vet.date) < 24
+CROSS APPLY
+	(SELECT TOP 1 
+		*
+	FROM VoiceEventLog ve 
+	WHERE ve.Date > vel.Date
+		AND ve.ChannelId = vel.ChannelId
+		AND ve.UserId = vel.UserId
+		AND ve.EventType = rve.SecondaryEvent
+	ORDER BY Date
+	) vet
 WHERE vel.EventType IN (SELECT InitalEvent FROM RelatedVoiceEvents) 
             ");
         }

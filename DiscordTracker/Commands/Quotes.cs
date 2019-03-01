@@ -33,10 +33,22 @@ namespace DiscordTracker.Commands
             else if (sections[1].ToLower() == "search")
                 await Search(message, sections);
 
+            else if (sections[1].ToLower() == "help")
+                await DisplayHelp(message, sections);
+
             else if (int.TryParse(sections[1], out id))
                 await message.Channel.SendMessageAsync(_db.Quotes.Find(id).DiscordDisplayMessage);
             else
                 await message.Channel.SendMessageAsync("Unrecognized Command");
+        }
+
+        private static async Task DisplayHelp(SocketMessage message, string[] sections)
+        {
+            var help = _db.Quotes.Where(q => q.DiscordDisplayMessage.ToLower().Contains("help")).FirstOrDefault();
+            if (help == null)
+                await message.Channel.SendMessageAsync("No Help Found");
+            else
+                await message.Channel.SendMessageAsync(help.DiscordDisplayMessage);
         }
 
         private static async Task Add(SocketMessage message, string[] parts)
@@ -89,7 +101,10 @@ namespace DiscordTracker.Commands
             var sb = new StringBuilder();
             foreach (var row in await results.ToListAsync())
             {
-                sb.Append($"{ row.Id.ToString().PadLeft(4)} | {row.QuoteText}\n");
+                var msg = row.QuoteText.Split("\n").First().Replace("`", "");
+                if (msg.Length > 100)
+                    msg = msg.Substring(0, 97) + "...";
+                sb.Append($"{ row.Id.ToString().PadLeft(4)} | {msg}\n");
             }
 
             await message.Channel.SendMessageAsync("```" + sb.ToString() + "```");
