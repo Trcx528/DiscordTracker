@@ -9,5 +9,6 @@ namespace DiscordTracker.Data
         public int Id { get; set; }
         public string InitalEvent { get; set; }
         public string SecondaryEvent { get; set; }
+        public bool IsPrimary { get; set; }
     }
 }

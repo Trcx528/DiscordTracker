@@ -10,8 +10,8 @@ namespace DiscordTracker.Migrations
 Create View [dbo].[CallStatsDetails] AS
 SELECT
 	vel.Date AS Start
-	,CASE WHEN DateDiff(MINUTE, vel.Date , coalesce(vet.Date, GetDate())) >= 1440 THEN NULL ELSE coalesce(vet.Date, GetDate()) END AS [End]
-	,CASE WHEN DateDiff(MINUTE, vel.Date , coalesce(vet.Date, GetDate())) >= 1440 THEN 0 ELSE DateDiff(MINUTE, vel.Date , coalesce(vet.Date, GetDate())) END as Duration
+	,vet.Date AS [End]
+	,DateDiff(MINUTE, vel.Date , vet.Date) as Duration
 	, dvc.Name as Channel
 	, du.IRLName as [User]
 	, vel.EventType
@@ -29,10 +29,10 @@ CROSS APPLY
 	WHERE ve.Date > vel.Date
 		AND ve.ChannelId = vel.ChannelId
 		AND ve.UserId = vel.UserId
-		AND ve.EventType = rve.SecondaryEvent
+		AND ve.EventType IN (SELECT SecondaryEvent FROM RelatedVoiceEvents WHERE InitalEvent = vel.EventType)
 	ORDER BY Date
 	) vet
-WHERE vel.EventType IN (SELECT InitalEvent FROM RelatedVoiceEvents) 
+WHERE vel.EventType IN (SELECT InitalEvent FROM RelatedVoiceEvents Where IsPrimary = 1) 
             ");
         }
 
