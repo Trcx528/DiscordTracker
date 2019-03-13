@@ -61,7 +61,7 @@ namespace DiscordTracker.Commands
             await DiscordUser.CreateOrGetAsync(message.Author);
             await DiscordUser.CreateOrGetAsync(message.MentionedUsers.First());
 
-            var quoteText = parts.Skip(2).Where(s => !s.Contains(message.MentionedUsers.First().Mention)).Aggregate("", (c, n) => c + " " + n).Trim();
+            var quoteText = parts.Skip(2).Where(s => !s.Contains(message.MentionedUsers.First().Mention)).SkipLast(1).Aggregate("", (c, n) => c + " " + n).Trim();
             var quote = new Quote() { AddedById = message.Author.Id, AuthorId = message.MentionedUsers.First().Id, Created = DateTime.Now, QuoteText = quoteText };
             _db.Add(quote);
             await _db.SaveChangesAsync();
