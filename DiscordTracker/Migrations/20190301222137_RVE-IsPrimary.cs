@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using DiscordTracker.Data;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace DiscordTracker.Migrations
 {
@@ -10,7 +11,7 @@ namespace DiscordTracker.Migrations
                 name: "IsPrimary",
                 table: "RelatedVoiceEvents",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false);            
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
