@@ -37,6 +37,7 @@ namespace DiscordTracker
             _discordUsers = db.DiscordUser.ToArray();
             _discordVoiceChannels = db.DiscordVoiceChannel.ToArray();
             db.Dispose();
+            Minecraft.Start();
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
