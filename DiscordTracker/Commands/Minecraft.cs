@@ -11,6 +11,7 @@ namespace DiscordTracker.Commands
     {
         private static Timer _updater = new Timer(30000);
         private static MinecraftPinger pinger;
+        private static string prevStatus = "";
 
         public static void Start()
         {
@@ -21,23 +22,38 @@ namespace DiscordTracker.Commands
 
         private async static void _updater_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (pinger == null && Setting.McServerAddress != null)
-                pinger = new MCServerStatus.MinecraftPinger(Setting.McServerAddress, Convert.ToInt16(Setting.McServerPort));
-
-            if (pinger != null)
+            try
             {
-                var ping = await pinger.PingAsync();
-
-                var sb = new StringBuilder();
-                sb.Append($"{ping.Players.Online}/{ping.Players.Max}");
-                foreach (var player in ping.Players.Sample)
+                if (pinger == null && Setting.McServerAddress != null)
+                    pinger = new MCServerStatus.MinecraftPinger(Setting.McServerAddress, Convert.ToInt16(Setting.McServerPort));
+                if (pinger != null)
                 {
-                    sb.Append($" {player.Name}");
+                    var ping = await pinger.PingAsync();
+
+                    var sb = new StringBuilder();
+                    sb.Append("FTB");
+                    //sb.Append($"{ping.Players.Online}/{ping.Players.Max}");
+                    if (ping.Players.Online > 0)
+                    {
+                        foreach (var player in ping.Players.Sample)
+                        {
+                            sb.Append($" {player.Name}");
+                        }
+                    }
+                    if (prevStatus != sb.ToString())
+                        Console.WriteLine($"Pinged MC Server {Setting.McServerAddress}: {sb}");
+                    prevStatus = sb.ToString();
+                    await Program._client.SetGameAsync(sb.ToString());
                 }
-                await Program._client.SetGameAsync(sb.ToString());
-            } else
+                else
+                {
+                    await Program._client.SetGameAsync("");
+                }
+            } catch (Exception ex)
             {
-                await Program._client.SetGameAsync("");
+                if (Setting.McServerAddress != null)
+                    pinger = new MCServerStatus.MinecraftPinger(Setting.McServerAddress, Convert.ToInt16(Setting.McServerPort));
+                Console.WriteLine($"Exception Retriving MC Server: {ex.Message}");
             }
         }
     }
