@@ -20,7 +20,7 @@ namespace DiscordTracker.Data
             //optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=BobBot-Dev;User Id=bob;Password=bob");
 #else
             //optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=BobBot;User Id=bob;Password=bob");
-            optionsBuilder.UseSqlServer("Server=192.168.47.2;Database=HawtBot;User Id=hawtbot;Password=Miss Big Tits and Sub Mindset");
+            optionsBuilder.UseSqlServer("Server=192.168.47.6;Database=HawtBot;User Id=hawtbot;Password=Miss Big Tits and Sub Mindset");
 #endif
         }
 
