@@ -16,9 +16,10 @@ namespace DiscordTracker
     class Program
     {
         public static readonly DiscordSocketClient _client = new DiscordSocketClient();
-        //public static ApplicationDataContext _db = new ApplicationDataContext();
         public static IEnumerable<DiscordVoiceChannel> _discordVoiceChannels;
         public static IEnumerable<DiscordUser> _discordUsers;
+        public static IEnumerable<DiscordChannel> _discordChannels;
+        internal static IEnumerable<object> _discordReactions;
 
 #if DEBUG
         public const string triggerCharacter = "|";
@@ -36,6 +37,7 @@ namespace DiscordTracker
             db.Database.Migrate();
             _discordUsers = db.DiscordUser.ToArray();
             _discordVoiceChannels = db.DiscordVoiceChannel.ToArray();
+            _discordChannels = db.DiscordChannels.ToArray();
             db.Dispose();
             Minecraft.Start();
             new Program().MainAsync().GetAwaiter().GetResult();
@@ -47,7 +49,49 @@ namespace DiscordTracker
             _client.GuildMemberUpdated += GuildUserUpdatedAsync;
             _client.MessageReceived += MessageReceievedAsync;
             _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
+            _client.ReactionAdded += ReactionAddedAsync;
+            _client.ReactionRemoved += ReactionRemovedAsync;
+            _client.MessageDeleted += MessageDeletedAsync;
             AppDomain.CurrentDomain.ProcessExit += BotShuttingDown;
+        }
+
+        private async Task MessageDeletedAsync(Cacheable<IMessage, ulong> arg1, ISocketMessageChannel arg2)
+        {
+            using (var db = new ApplicationDataContext())
+            {
+                var msg = await DiscordMessage.CreateOrGetAsync(await arg1.GetOrDownloadAsync());
+                db.Entry(msg);
+                msg.IsDeleted = true;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        private async Task ReactionRemovedAsync(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
+        {
+            Console.WriteLine($"Removing Reaction {arg3.Emote.Name}");
+            using (var db = new ApplicationDataContext())
+            {
+                await DiscordMessage.CreateOrGetAsync(await arg1.GetOrDownloadAsync());
+                var reaction = db.UserMessageReactions.FirstOrDefault(r => r.MessageId == arg3.MessageId && r.ReactorId == arg3.UserId && r.Reaction == arg3.Emote.Name);
+                if (reaction != null)
+                {
+                    db.Remove(reaction);
+                    await db.SaveChangesAsync();
+                }
+            }
+
+        }
+
+        private async Task ReactionAddedAsync(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
+        {
+            Console.WriteLine($"Adding Reaction {arg3.Emote.Name}");
+            using (var db = new ApplicationDataContext())
+            {
+                await DiscordMessage.CreateOrGetAsync(await arg1.GetOrDownloadAsync());
+                var reaction = new UserMessageReaction() { Created = DateTime.UtcNow, MessageId = arg3.MessageId, ReactorId = arg3.UserId, Reaction = arg3.Emote.Name };
+                db.Add(reaction);
+                await db.SaveChangesAsync();
+            }
         }
 
         private async void BotShuttingDown(object sender, EventArgs e)
@@ -71,8 +115,8 @@ namespace DiscordTracker
         private async Task GuildUserUpdatedAsync(SocketUser prevUser, SocketUser newUser)
         {
             var db = new ApplicationDataContext();
-            await Log.LogAsync(newUser, $"{newUser.Username} Status change {newUser.Status} {newUser.Game}");
-            db.Add(new DiscordUserEvent() { EventTime = DateTime.Now, Game = newUser.Game?.Name, Status = newUser.Status.ToString(), UserId = newUser.Id });
+            await Log.LogAsync(newUser, $"{newUser.Username} Status change {newUser.Status} {newUser.Activity.Name}");
+            db.Add(new DiscordUserEvent() { EventTime = DateTime.Now, Game = newUser.Activity.Name, Status = newUser.Status.ToString(), UserId = newUser.Id });
             await db.SaveChangesAsync();
             db.Dispose();
 
@@ -202,18 +246,23 @@ namespace DiscordTracker
             if (message.Author.Id == _client.CurrentUser.Id)
                 return;
 
+
+            await DiscordChannel.CreateOrGetAsync(message.Channel);
+            await DiscordMessage.CreateAsync(message);
+
             try
             {
                 if (message.Content.StartsWith(triggerCharacter))
                 {
                     var cmd = message.Content.Substring(1, message.Content.Length - 1).Split(' ').First();
-
                     switch (cmd)
                     {
                         case "ping":
                             await message.Channel.SendMessageAsync("pong!");
                             break;
 
+                        case "test":
+                            break;
                         case "csv":
                             await CmdCsvAsync(message);
                             break;
